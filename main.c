@@ -9,12 +9,23 @@ void decimal_to_binary(int *dec, int var, int *binary){
         temp_var--;
     }
 }
+int count_ones(int *binary_minterm, int num_of_variables){
+    int ones_count = 0;
 
+    for (int i = 0; i < num_of_variables; i++) {
+        if (binary_minterm[i] == 1) {
+            ones_count++;
+        }
+    }
+
+    return ones_count;
+}
 
 int main(int argc, char *argv[]) {
 
     int num_of_variables;
     int num_of_minterms;
+
 
 
 
@@ -31,8 +42,17 @@ int main(int argc, char *argv[]) {
     }
 
     int binary[num_of_variables];
+    int binary_minterms[num_of_minterms][num_of_variables];
 
+    for (int i = 0; i < num_of_minterms; i++) {
+        decimal_to_binary(&minterms[i], num_of_variables, binary);
+        for (int k = 0; k < num_of_variables; k++) {
+            binary_minterms[i][k] = binary[k];
+        }
     }
+
+    
+    
 
 
 }
