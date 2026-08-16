@@ -51,8 +51,26 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    
-    
+    int ones_count[num_of_minterms];
 
+    for (int i = 0; i < num_of_minterms; i++) {
+        ones_count[i] = count_ones(binary_minterms[i], num_of_variables);
+    }
+
+    int groups[num_of_variables +1][num_of_minterms][num_of_variables];
+    int grp_count[num_of_variables + 1] = {0};
+
+    for (int i = 0; i < num_of_minterms; i++) {
+
+    int group = ones_count[i];
+    int position = grp_count[group];
+
+    for (int k = 0; k < num_of_variables; k++) {
+        groups[group][position][k] = binary_minterms[i][k];
+    }
+
+    grp_count[group]++;
+    
+    }
 
 }
