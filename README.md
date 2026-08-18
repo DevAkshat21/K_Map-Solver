@@ -1,0 +1,1 @@
+LOL I made the repo for making a K-Map solver, but hell the visual thing is too difficult, shifted to the Quine–McCluskey algo.
