@@ -206,6 +206,12 @@ int main(int argc, char *argv[]) {
                     }
 
                     combined_iteration_2_count++;
+
+                    // printf("Combined: ");
+                    // for (int l = 0; l < num_of_variables; l++) {
+                    //     printf("%d", combined_iteration_2[combined_iteration_2_count - 1][l]);
+                    // }
+                    // printf("\n");
                 }
             }
         }
