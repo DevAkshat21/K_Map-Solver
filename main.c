@@ -21,11 +21,17 @@ int count_ones(int *binary_minterm, int num_of_variables){
     return ones_count;
 }
 
+struct Term {
+    int binary[10];
+    int minterms[10];
+    int minterm_count;
+    int combined;
+};
+
 int main(int argc, char *argv[]) {
 
     int num_of_variables;
     int num_of_minterms;
-
 
 
 
@@ -44,11 +50,24 @@ int main(int argc, char *argv[]) {
     int binary[num_of_variables];
     int binary_minterms[num_of_minterms][num_of_variables];
 
+    struct Term terms[num_of_minterms];
+
     for (int i = 0; i < num_of_minterms; i++) {
         decimal_to_binary(&minterms[i], num_of_variables, binary);
         for (int k = 0; k < num_of_variables; k++) {
             binary_minterms[i][k] = binary[k];
         }
+    }
+
+    for (int i = 0; i < num_of_minterms; i++) {
+
+        for (int j = 0; j < num_of_variables; j++) {
+            terms[i].binary[j] = binary_minterms[i][j];
+        }
+
+        terms[i].minterms[0] = minterms[i];
+        terms[i].minterm_count = 1;
+        terms[i].combined = 0;
     }
 
     int ones_count[num_of_minterms];
@@ -199,7 +218,7 @@ int main(int argc, char *argv[]) {
                 /* one new difference */
 
                 if (valid && difference == 1) {
-
+W
                     for (int l = 0; l < num_of_variables; l++) {
                         combined_iteration_2[combined_iteration_2_count][l]
                             = temp_binary[l];
@@ -207,11 +226,6 @@ int main(int argc, char *argv[]) {
 
                     combined_iteration_2_count++;
 
-                    // printf("Combined: ");
-                    // for (int l = 0; l < num_of_variables; l++) {
-                    //     printf("%d", combined_iteration_2[combined_iteration_2_count - 1][l]);
-                    // }
-                    // printf("\n");
                 }
             }
         }
