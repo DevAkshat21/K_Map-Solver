@@ -1,19 +1,37 @@
 #include <stdio.h>
 
-void decimal_to_binary(int *dec, int var, int *binary){
-    int temp_dec = *dec;
-    int temp_var = var;
-    while (temp_var > 0){
-        binary[temp_var - 1] = temp_dec % 2;
-        temp_dec = temp_dec / 2;
-        temp_var--;
+#define MAX_BITS 10
+#define MAX_MINTERMS 1024
+
+
+struct Term {
+    int binary[MAX_BITS];
+    int minterms[MAX_MINTERMS];
+
+    int minterm_count;
+    int combined;
+};
+
+
+/* Convert decimal minterm to binary */
+void decimal_to_binary(int dec, int var, int *binary)
+{
+    int temp_dec = dec;
+
+    for (int i = var - 1; i >= 0; i--) {
+        binary[i] = temp_dec % 2;
+        temp_dec /= 2;
     }
 }
-int count_ones(int *binary_minterm, int num_of_variables){
+
+
+/* Count the number of 1s in a term */
+int count_ones(struct Term *term, int num_of_variables)
+{
     int ones_count = 0;
 
     for (int i = 0; i < num_of_variables; i++) {
-        if (binary_minterm[i] == 1) {
+        if (term->binary[i] == 1) {
             ones_count++;
         }
     }
@@ -21,213 +39,349 @@ int count_ones(int *binary_minterm, int num_of_variables){
     return ones_count;
 }
 
-struct Term {
-    int binary[10];
-    int minterms[10];
-    int minterm_count;
-    int combined;
-};
 
-int main(int argc, char *argv[]) {
+/* Print a term */
+void print_term(struct Term *term, int num_of_variables)
+{
+    for (int i = 0; i < num_of_variables; i++) {
 
+        if (term->binary[i] == -1)
+            printf("-");
+        else
+            printf("%d", term->binary[i]);
+    }
+}
+
+
+/*
+    Try to combine two terms.
+
+    Returns 1 if they can be combined.
+    Returns 0 otherwise.
+
+    The resulting term is stored in result.
+*/
+int combine_terms(
+    struct Term *term1,
+    struct Term *term2,
+    struct Term *result,
+    int num_of_variables
+)
+{
+    int differences = 0;
+
+    result->minterm_count = 0;
+    result->combined = 0;
+
+    for (int i = 0; i < num_of_variables; i++) {
+
+        int bit1 = term1->binary[i];
+        int bit2 = term2->binary[i];
+
+        /* Both are already don't-cares */
+        if (bit1 == -1 && bit2 == -1) {
+            result->binary[i] = -1;
+        }
+
+        /* One is don't-care and the other isn't */
+        else if (bit1 == -1 || bit2 == -1) {
+            return 0;
+        }
+
+        /* Same bit */
+        else if (bit1 == bit2) {
+            result->binary[i] = bit1;
+        }
+
+        /* Different bit */
+        else {
+            result->binary[i] = -1;
+            differences++;
+        }
+
+        /* More than one difference means no combination */
+        if (differences > 1) {
+            return 0;
+        }
+    }
+
+    if (differences != 1)
+        return 0;
+
+
+    /*
+        This combination was successful.
+        Mark both original terms as combined.
+    */
+    term1->combined = 1;
+    term2->combined = 1;
+
+
+    /*
+        Store all original minterms represented
+        by the new term.
+    */
+    for (int i = 0; i < term1->minterm_count; i++) {
+        result->minterms[result->minterm_count]
+            = term1->minterms[i];
+
+        result->minterm_count++;
+    }
+
+    for (int i = 0; i < term2->minterm_count; i++) {
+        result->minterms[result->minterm_count]
+            = term2->minterms[i];
+
+        result->minterm_count++;
+    }
+
+    return 1;
+}
+
+
+int main(void)
+{
     int num_of_variables;
     int num_of_minterms;
 
 
+    /* ---------------- INPUT ---------------- */
 
-    printf("Enter the number of Variable: \n");
-    scanf("%d",&num_of_variables);
+    printf("Enter the number of variables: ");
+    scanf("%d", &num_of_variables);
 
-    printf("Enter numbers of minterms: \n");  
-    scanf("%d",&num_of_minterms);
+    printf("Enter number of minterms: ");
+    scanf("%d", &num_of_minterms);
 
-    printf("Enter the Minterms: ");
+
     int minterms[num_of_minterms];
+
+    printf("Enter the minterms: ");
+
     for (int i = 0; i < num_of_minterms; i++) {
-        scanf("%d",&minterms[i]);
+        scanf("%d", &minterms[i]);
     }
 
-    int binary[num_of_variables];
-    int binary_minterms[num_of_minterms][num_of_variables];
+
+    /* ---------------- CREATE TERMS ---------------- */
 
     struct Term terms[num_of_minterms];
 
-    for (int i = 0; i < num_of_minterms; i++) {
-        decimal_to_binary(&minterms[i], num_of_variables, binary);
-        for (int k = 0; k < num_of_variables; k++) {
-            binary_minterms[i][k] = binary[k];
-        }
-    }
 
     for (int i = 0; i < num_of_minterms; i++) {
 
-        for (int j = 0; j < num_of_variables; j++) {
-            terms[i].binary[j] = binary_minterms[i][j];
-        }
+        decimal_to_binary(
+            minterms[i],
+            num_of_variables,
+            terms[i].binary
+        );
 
         terms[i].minterms[0] = minterms[i];
         terms[i].minterm_count = 1;
         terms[i].combined = 0;
     }
 
-    int ones_count[num_of_minterms];
+
+    /* ---------------- PRINT INITIAL TERMS ---------------- */
+
+    printf("\nInitial terms:\n");
 
     for (int i = 0; i < num_of_minterms; i++) {
-        ones_count[i] = count_ones(binary_minterms[i], num_of_variables);
+
+        printf("%d -> ", minterms[i]);
+
+        print_term(
+            &terms[i],
+            num_of_variables
+        );
+
+        printf("\n");
     }
 
-    int groups[num_of_variables +1][num_of_minterms][num_of_variables];
 
-    int grp_count[num_of_variables + 1];
+    /* ---------------- FIRST GROUPING ---------------- */
+
+    struct Term groups[num_of_variables + 1][num_of_minterms];
+
+    int group_count[num_of_variables + 1] = {0};
+
+
+    for (int i = 0; i < num_of_minterms; i++) {
+
+        int group =
+            count_ones(&terms[i], num_of_variables);
+
+        int position = group_count[group];
+
+        groups[group][position] = terms[i];
+
+        group_count[group]++;
+    }
+
+
+    printf("\nGroups:\n");
+
     for (int i = 0; i <= num_of_variables; i++) {
-        grp_count[i] = 0;
+
+        printf("Group %d:\n", i);
+
+        for (int j = 0; j < group_count[i]; j++) {
+
+            print_term(
+                &groups[i][j],
+                num_of_variables
+            );
+
+            printf("\n");
+        }
     }
 
-    for (int i = 0; i < num_of_minterms; i++) {
 
-    int group = ones_count[i];
-    int position = grp_count[group];
+    /* ---------------- FIRST COMBINATION ---------------- */
 
-    for (int k = 0; k < num_of_variables; k++) {
-        groups[group][position][k] = binary_minterms[i][k];
-    }
+    struct Term combined[num_of_minterms * num_of_minterms];
 
-    grp_count[group]++;
-
-    }
-
-    int combined[num_of_minterms][num_of_variables];
     int combined_count = 0;
+
 
     for (int i = 0; i < num_of_variables; i++) {
 
-        for (int j = 0; j < grp_count[i]; j++) {
+        for (int j = 0; j < group_count[i]; j++) {
 
-            for (int k = 0; k < grp_count[i + 1]; k++) {
+            for (int k = 0; k < group_count[i + 1]; k++) {
 
-                int temp_binary[num_of_variables];
-                int differences = 0;
+                struct Term result;
 
-                for (int l = 0; l < num_of_variables; l++) {
 
-                    if (groups[i][j][l] == groups[i + 1][k][l]) {
-                        temp_binary[l] = groups[i][j][l];
-                    } else {
-                        temp_binary[l] = -1;
-                        differences++;
-                    }
-                }
+                if (combine_terms(
+                        &groups[i][j],
+                        &groups[i + 1][k],
+                        &result,
+                        num_of_variables)) {
 
-                if (differences == 1) {
-                    for (int l = 0; l < num_of_variables; l++) {
-                        combined[combined_count][l] = temp_binary[l];
-                    }
+                    combined[combined_count] = result;
 
                     combined_count++;
-                    }
                 }
             }
-
-        }
-    
-    int combined_ones_count[combined_count];
-
-    for (int i = 0; i < combined_count; i++) {
-        combined_ones_count[i] = 0;
-
-        for (int j = 0; j < num_of_variables; j++) {
-            if (combined[i][j] == 1) {
-                combined_ones_count[i]++;
-            }
         }
     }
 
-    int combined_groups[num_of_variables + 1][combined_count][num_of_variables];
 
-    int combined_grp_count[num_of_variables + 1];
+    /* ---------------- PRINT FIRST COMBINATIONS ---------------- */
 
-    for (int i = 0; i <= num_of_variables; i++) {
-    combined_grp_count[i] = 0;
-    }
-
+    printf("\nFirst combinations:\n");
 
     for (int i = 0; i < combined_count; i++) {
 
-        int group = combined_ones_count[i];
-        int position = combined_grp_count[group];
+        print_term(
+            &combined[i],
+            num_of_variables
+        );
 
-        for (int j = 0; j < num_of_variables; j++) {
-            combined_groups[group][position][j] = combined[i][j];
+        printf(" -> ");
+
+        for (int j = 0;
+             j < combined[i].minterm_count;
+             j++) {
+
+            printf("%d ",
+                combined[i].minterms[j]);
         }
 
-        combined_grp_count[group]++;
+        printf("\n");
     }
 
-    int combined_iteration_2[combined_count][num_of_variables];
+
+    /* ---------------- SECOND GROUPING ---------------- */
+
+    struct Term combined_groups[num_of_variables + 1]
+                               [combined_count];
+
+    int combined_group_count[num_of_variables + 1] = {0};
+
+
+    for (int i = 0; i < combined_count; i++) {
+
+        int group =
+            count_ones(
+                &combined[i],
+                num_of_variables
+            );
+
+        int position =
+            combined_group_count[group];
+
+        combined_groups[group][position]
+            = combined[i];
+
+        combined_group_count[group]++;
+    }
+
+
+    /* ---------------- SECOND COMBINATION ---------------- */
+
+    struct Term combined_iteration_2[combined_count];
+
     int combined_iteration_2_count = 0;
 
 
     for (int i = 0; i < num_of_variables; i++) {
 
-        for (int j = 0; j < combined_grp_count[i]; j++) {
+        for (int j = 0;
+             j < combined_group_count[i];
+             j++) {
 
-            for (int k = 0; k < combined_grp_count[i + 1]; k++) {
+            for (int k = 0;
+                 k < combined_group_count[i + 1];
+                 k++) {
 
-                int temp_binary[num_of_variables];
-                int difference = 0;
-                int valid = 1;
-
-
-                for (int l = 0; l < num_of_variables; l++) {
-
-                    int bit1 = combined_groups[i][j][l];
-                    int bit2 = combined_groups[i + 1][k][l];
+                struct Term result;
 
 
-                    /* Both are already don't-cares */
+                if (combine_terms(
+                        &combined_groups[i][j],
+                        &combined_groups[i + 1][k],
+                        &result,
+                        num_of_variables)) {
 
-                    if (bit1 == -1 && bit2 == -1) {
-                        temp_binary[l] = -1;
-                    }
-
-
-                    /* One is don't-care and the other isn't */
-
-                    else if (bit1 == -1 || bit2 == -1) {
-                        valid = 0;
-                        break;
-                    }
-
-
-                    /* Both are normal bits */
-
-                    else if (bit1 == bit2) {
-                        temp_binary[l] = bit1;
-                    }
-
-
-                    /* 0 vs 1 */
-
-                    else {
-                        temp_binary[l] = -1;
-                        difference++;
-                    }
-                }
-
-
-                /* one new difference */
-
-                if (valid && difference == 1) {
-W
-                    for (int l = 0; l < num_of_variables; l++) {
-                        combined_iteration_2[combined_iteration_2_count][l]
-                            = temp_binary[l];
-                    }
+                    combined_iteration_2[
+                        combined_iteration_2_count
+                    ] = result;
 
                     combined_iteration_2_count++;
-
                 }
             }
         }
     }
+
+
+    /* ---------------- PRINT SECOND COMBINATIONS ---------------- */
+
+    printf("\nSecond combinations:\n");
+
+    for (int i = 0;
+         i < combined_iteration_2_count;
+         i++) {
+
+        print_term(
+            &combined_iteration_2[i],
+            num_of_variables
+        );
+
+        printf(" -> ");
+
+        for (int j = 0;
+             j < combined_iteration_2[i].minterm_count;
+             j++) {
+
+            printf("%d ",
+                combined_iteration_2[i].minterms[j]);
+        }
+
+        printf("\n");
+    }
+
+
+    return 0;
 }
