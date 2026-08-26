@@ -25,6 +25,7 @@ void decimal_to_binary(int dec, int var, int *binary)
 }
 
 
+
 /* Count the number of 1s in a term */
 int count_ones(struct Term *term, int num_of_variables)
 {
